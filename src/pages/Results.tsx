@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { api, Candidate } from '../api/mockApi';
+import { Candidate } from '../api/mockApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import voteService from '../api/voteService';
 
 const Results: React.FC = () => {
   const [results, setResults] = useState<Candidate[]>([]);
@@ -15,7 +16,7 @@ const Results: React.FC = () => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const data = await api.getResults();
+        const data = await voteService.getResults();
         setResults(data);
         
         // Calculate total votes

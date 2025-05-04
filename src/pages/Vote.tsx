@@ -5,9 +5,11 @@ import Layout from '../components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../context/AuthContext';
-import { api, Candidate } from '../api/mockApi';
+import { Candidate } from '../api/mockApi';
 import { toast } from 'sonner';
 import { ArrowRight } from 'lucide-react';
+import candidateService from '../api/candidateService';
+import voteService from '../api/voteService';
 
 const Vote: React.FC = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -21,15 +23,15 @@ const Vote: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const fetchedCandidates = await api.getCandidates();
+        const fetchedCandidates = await candidateService.getCandidates();
         setCandidates(fetchedCandidates);
         
         if (user) {
-          const voted = api.hasVoted(user.id);
+          const voted = await voteService.hasVoted(user.id);
           setHasVoted(voted);
           
           if (voted) {
-            const votedFor = await api.getUserVote(user.id);
+            const votedFor = await voteService.getUserVote(user.id);
             setSelectedCandidate(votedFor);
           }
         }
@@ -50,7 +52,7 @@ const Vote: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await api.castVote(user.id, selectedCandidate);
+      await voteService.castVote(user.id, selectedCandidate);
       setHasVoted(true);
       toast.success('Your vote has been cast successfully!');
       
@@ -58,9 +60,9 @@ const Vote: React.FC = () => {
       setTimeout(() => {
         navigate('/results');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error casting vote:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to cast vote. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to cast vote. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

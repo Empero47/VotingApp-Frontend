@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import authService, { LoginRequest, RegisterRequest } from '../api/authService';
 
 // Define types
 export type User = {
@@ -43,65 +44,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  // Mock login function - this would connect to your backend in production
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // This is a mock - in reality, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const loginRequest: LoginRequest = { email, password };
+      const userData = await authService.login(loginRequest);
       
-      // Mock response
-      const mockUser: User = {
-        id: '1',
-        name: email.split('@')[0],
-        email,
-        token: 'mock-jwt-token',
-        isAdmin: email.includes('admin'),
-      };
-      
-      // Store user in state and localStorage
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       toast.success('Login successful');
       navigate('/vote');
-    } catch (error) {
-      toast.error('Login failed. Please check your credentials.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      toast.error(errorMessage);
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Mock register function
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // This is a mock - in reality, you would call your API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const registerRequest: RegisterRequest = { name, email, password };
+      const userData = await authService.register(registerRequest);
       
-      // Mock response
-      const mockUser: User = {
-        id: '1',
-        name,
-        email,
-        token: 'mock-jwt-token',
-        isAdmin: false,
-      };
-      
-      // Store user in state and localStorage
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       toast.success('Registration successful');
       navigate('/vote');
-    } catch (error) {
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
       console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Logout function
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');

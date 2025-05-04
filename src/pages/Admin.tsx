@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '../context/AuthContext';
-import { api, Candidate } from '../api/mockApi';
+import { Candidate } from '../api/mockApi';
 import { toast } from 'sonner';
+import candidateService from '../api/candidateService';
 
 const Admin: React.FC = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -21,6 +22,7 @@ const Admin: React.FC = () => {
   const [party, setParty] = useState('');
   const [position, setPosition] = useState('');
   const [imageUrl, setImageUrl] = useState('https://randomuser.me/api/portraits/men/1.jpg');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Redirect if not admin
@@ -31,7 +33,7 @@ const Admin: React.FC = () => {
 
     const fetchCandidates = async () => {
       try {
-        const data = await api.getCandidates();
+        const data = await candidateService.getCandidates();
         setCandidates(data);
       } catch (error) {
         console.error('Error fetching candidates:', error);
@@ -44,32 +46,44 @@ const Admin: React.FC = () => {
     fetchCandidates();
   }, [user, isAdmin, navigate]);
 
-  const handleAddCandidate = (e: React.FormEvent) => {
+  const handleAddCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    // In a real app, this would call an API
-    const newCandidate = {
-      id: `new-${Date.now()}`,
-      name,
-      party,
-      position,
-      imageUrl,
-      voteCount: 0
-    };
-    
-    setCandidates([...candidates, newCandidate]);
-    toast.success(`Added candidate: ${name}`);
-    
-    // Reset form
-    setName('');
-    setParty('');
-    setPosition('');
-    setImageUrl('https://randomuser.me/api/portraits/men/1.jpg');
+    try {
+      const newCandidate = {
+        name,
+        party,
+        position,
+        imageUrl
+      };
+      
+      const addedCandidate = await candidateService.addCandidate(newCandidate);
+      setCandidates([...candidates, addedCandidate]);
+      toast.success(`Added candidate: ${name}`);
+      
+      // Reset form
+      setName('');
+      setParty('');
+      setPosition('');
+      setImageUrl('https://randomuser.me/api/portraits/men/1.jpg');
+    } catch (error) {
+      console.error('Error adding candidate:', error);
+      toast.error('Failed to add candidate');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setCandidates(candidates.filter(candidate => candidate.id !== id));
-    toast.success('Candidate removed');
+  const handleDelete = async (id: string) => {
+    try {
+      await candidateService.deleteCandidate(id);
+      setCandidates(candidates.filter(candidate => candidate.id !== id));
+      toast.success('Candidate removed');
+    } catch (error) {
+      console.error('Error deleting candidate:', error);
+      toast.error('Failed to delete candidate');
+    }
   };
 
   if (isLoading) {
@@ -192,8 +206,17 @@ const Admin: React.FC = () => {
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full bg-vote-primary hover:bg-vote-secondary">
-                      Add Candidate
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-vote-primary hover:bg-vote-secondary"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center justify-center">
+                          <span className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                          Adding...
+                        </span>
+                      ) : 'Add Candidate'}
                     </Button>
                   </form>
                 </CardContent>
