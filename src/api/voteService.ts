@@ -1,15 +1,9 @@
-
 import apiClient from './apiClient';
-import { Candidate } from './mockApi';
-
-export interface CastVoteRequest {
-  voterId: string;
-  candidateId: string;
-}
+import { Candidate, Vote } from './types';
 
 const voteService = {
-  castVote: async (voterId: string, candidateId: string): Promise<{ success: boolean }> => {
-    const response = await apiClient.post('/votes', { voterId, candidateId });
+  castVote: async (candidateId: number): Promise<Vote> => {
+    const response = await apiClient.post<Vote>('/votes', { candidateId });
     return response.data;
   },
 
@@ -18,13 +12,13 @@ const voteService = {
     return response.data;
   },
   
-  hasVoted: async (userId: string): Promise<boolean> => {
-    const response = await apiClient.get<boolean>(`/votes/check?voterId=${userId}`);
+  hasVoted: async (): Promise<boolean> => {
+    const response = await apiClient.get<boolean>('/votes/check');
     return response.data;
   },
   
-  getUserVote: async (userId: string): Promise<string | null> => {
-    const response = await apiClient.get<string | null>(`/votes/user?voterId=${userId}`);
+  getUserVote: async (): Promise<number | null> => {
+    const response = await apiClient.get<number | null>('/votes/user');
     return response.data;
   }
 };

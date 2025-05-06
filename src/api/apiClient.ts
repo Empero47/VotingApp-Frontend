@@ -1,49 +1,52 @@
-
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
-// Create axios instance with base URL
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api', // Spring Boot default port
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to include JWT token in requests
 apiClient.interceptors.request.use(
   (config) => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const { token } = JSON.parse(user);
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle common errors
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const { response } = error;
+  (error: AxiosError) => {
+    const errorMessage = (error.response?.data as any)?.message || 'An error occurred';
     
-    if (response && response.status === 401) {
-      // Unauthorized - clear user data and redirect to login
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      toast.error('Session expired. Please log in again.');
-    } else if (response && response.status === 403) {
-      // Forbidden
-      toast.error('You do not have permission to perform this action');
-    } else if (response && response.status >= 500) {
-      // Server error
-      toast.error('Server error. Please try again later.');
+    switch (error.response?.status) {
+      case 401:
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        toast.error('Session expired. Please log in again.');
+        break;
+      case 403:
+        toast.error('You do not have permission to perform this action');
+        break;
+      case 409:
+        toast.error(errorMessage);
+        break;
+      case 422:
+        toast.error('Invalid data provided');
+        break;
+      case 500:
+        toast.error('Server error. Please try again later.');
+        break;
+      default:
+        toast.error(errorMessage);
     }
     
     return Promise.reject(error);
